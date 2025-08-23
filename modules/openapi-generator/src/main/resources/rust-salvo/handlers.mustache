@@ -1,0 +1,82 @@
+{{>partial_header}}
+//! {{#appName}}{{.}}{{/appName}}{{^appName}}{{packageName}}{{/appName}} handlers
+//!
+//! API version: {{#appVersion}}{{.}}{{/appVersion}}{{^appVersion}}1.0.0{{/appVersion}}
+//!
+
+use salvo::prelude::*;
+use serde::{Deserialize, Serialize};
+{{#hasUUIDs}}
+use uuid::Uuid;
+{{/hasUUIDs}}
+{{#enableRequestValidation}}
+use validator::Validate;
+{{/enableRequestValidation}}
+
+use crate::models::*;
+
+{{#operations}}
+{{#operation}}
+{{#notes}}
+/// {{.}}
+{{/notes}}
+{{^notes}}
+/// {{summary}}{{^summary}}{{operationId}}{{/summary}}
+{{/notes}}
+{{#vendorExtensions.x-has-auth}}
+#[salvo::oapi::endpoint(
+    operation_id = "{{operationId}}",
+    tags("{{classname}}"){{#hasAuthMethods}},
+    security(("{{#authMethods}}{{#isApiKey}}ApiKeyAuth{{/isApiKey}}{{#isBasic}}BasicAuth{{/isBasic}}{{#isBearer}}BearerAuth{{/isBearer}}{{^-last}}", {{/-last}}{{/authMethods}}"){{/hasAuthMethods}}
+)]
+{{/vendorExtensions.x-has-auth}}
+{{^vendorExtensions.x-has-auth}}
+#[salvo::oapi::endpoint(
+    operation_id = "{{operationId}}",
+    tags("{{classname}}")
+)]
+{{/vendorExtensions.x-has-auth}}
+pub async fn {{vendorExtensions.x-handler-name}}(
+    {{#hasParams}}
+    {{#allParams}}
+    {{#isQueryParam}}
+    #[salvo(extract(source = "query"))] {{paramName}}: {{#isContainer}}{{dataType}}{{/isContainer}}{{^isContainer}}{{#required}}{{dataType}}{{/required}}{{^required}}Option<{{dataType}}>{{/required}}{{/isContainer}},
+    {{/isQueryParam}}
+    {{#isPathParam}}
+    #[salvo(extract(source = "param"))] {{paramName}}: {{dataType}},
+    {{/isPathParam}}
+    {{#isHeaderParam}}
+    #[salvo(extract(source = "header"))] {{paramName}}: {{#required}}{{dataType}}{{/required}}{{^required}}Option<{{dataType}}>{{/required}},
+    {{/isHeaderParam}}
+    {{#isBodyParam}}
+    #[salvo(extract(source = "json"))] {{paramName}}: {{dataType}},
+    {{/isBodyParam}}
+    {{#isFormParam}}
+    #[salvo(extract(source = "form"))] {{paramName}}: {{#required}}{{dataType}}{{/required}}{{^required}}Option<{{dataType}}>{{/required}},
+    {{/isFormParam}}
+    {{/allParams}}
+    {{/hasParams}}
+    req: &mut Request,
+    res: &mut Response,
+) -> Result<(), StatusError> {
+    {{#notes}}
+    // {{.}}
+    {{/notes}}
+    {{^notes}}
+    // TODO: Implement {{operationId}}
+    {{/notes}}
+
+    {{#returnType}}
+    // Example response - replace with actual implementation
+    let response_data = {{>response_example}};
+    res.render(Json(response_data));
+    {{/returnType}}
+    {{^returnType}}
+    res.status_code(StatusCode::OK);
+    {{/returnType}}
+
+    Ok(())
+}
+
+{{/operation}}
+{{/operations}}
