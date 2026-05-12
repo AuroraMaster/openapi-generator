@@ -1,6 +1,6 @@
 [package]
 name = "{{{packageName}}}"
-version = "{{#lambdaVersion}}{{{packageVersion}}}{{/lambdaVersion}}"
+version = "{{{packageVersion}}}"
 {{#infoEmail}}
 authors = ["{{{.}}}"]
 {{/infoEmail}}
@@ -17,34 +17,42 @@ license = "{{.}}"
 license = "Unlicense"
 {{/licenseInfo}}
 edition = "2021"
+{{#publishRustRegistry}}
+publish = ["{{.}}"]
+{{/publishRustRegistry}}
 {{#repositoryUrl}}
 repository = "{{.}}"
 {{/repositoryUrl}}
-
-[dependencies]
-salvo = { version = "0.70", features = ["oapi", "jwt-auth", "cors"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-tokio = { version = "1.0", features = ["full"] }
-{{#hasUUIDs}}
-uuid = { version = "1.8", features = ["serde", "v4"] }
-{{/hasUUIDs}}
-{{#enableRequestValidation}}
-validator = { version = "0.18", features = ["derive"] }
-{{/enableRequestValidation}}
-chrono = { version = "0.4", features = ["serde"] }
-tracing = "0.1"
-tracing-subscriber = "0.3"
-anyhow = "1.0"
-
-{{#enableCorsMiddleware}}
-[dependencies.salvo-cors]
-version = "0.70"
-optional = true
-{{/enableCorsMiddleware}}
+{{#documentationUrl}}
+documentation = "{{.}}"
+{{/documentationUrl}}
+{{#homePageUrl}}
+homepage = "{{.}}"
+{{/homePageUrl}}
 
 [features]
-default = []
-{{#enableCorsMiddleware}}
-cors = ["salvo-cors"]
-{{/enableCorsMiddleware}}
+default = ["server"]
+server = []
+
+[dependencies]
+salvo = { version = "0.93", features = [
+    "oapi",
+    "cors",
+    "jwt-auth",
+    "serve-static",
+] }
+async-trait = "0.1"
+base64 = "0.22"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1"
+chrono = { version = "0.4", features = ["serde"] }
+{{#hasUUIDs}}
+uuid = { version = "1", features = ["serde", "v4"] }
+{{/hasUUIDs}}
+{{#enableRequestValidation}}
+validator = { version = "0.20", features = ["derive"] }
+{{/enableRequestValidation}}

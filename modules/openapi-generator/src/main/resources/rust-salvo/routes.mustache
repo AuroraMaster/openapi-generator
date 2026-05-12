@@ -1,0 +1,22 @@
+{{>partial_header}}
+//! API routing module
+//!
+//! This module defines the routing configuration for all API endpoints.
+
+use salvo::prelude::*;
+use crate::handlers::*;
+
+/// Create the main router with all API routes
+pub fn create_router() -> Router {
+    let mut router = Router::new();
+
+    {{#salvoRoutes}}
+    // Routes for {{path}}
+    router = router.push(
+        Router::with_path("{{path}}"){{#operations}}
+            .{{method}}({{handlerName}}){{/operations}}
+    );
+    {{/salvoRoutes}}
+
+    router
+}

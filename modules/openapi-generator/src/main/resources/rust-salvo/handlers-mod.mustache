@@ -6,17 +6,13 @@
 
 {{#apiInfo}}
 {{#apis}}
-{{#operations}}
-pub mod {{snakeCase baseName}};
-{{/operations}}
+pub mod {{classFilename}};
 {{/apis}}
 {{/apiInfo}}
 
 // Re-exports for easier access
 {{#apiInfo}}
 {{#apis}}
-{{#operations}}
-pub use {{snakeCase baseName}}::*;
-{{/operations}}
+pub use {{classFilename}}::*;
 {{/apis}}
 {{/apiInfo}}
