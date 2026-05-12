@@ -196,8 +196,7 @@ public class RustSalvoServerCodegen extends AbstractRustCodegen implements Codeg
                         .defaultValue(Boolean.FALSE.toString()),
                 new CliOption("enableCorsMiddleware",
                         "Enable CORS middleware")
-                        .defaultValue(Boolean.FALSE.toString()),
-
+                        .defaultValue(Boolean.FALSE.toString())
         ));
     }
 
@@ -238,24 +237,31 @@ public class RustSalvoServerCodegen extends AbstractRustCodegen implements Codeg
             setPackageVersion((String) additionalProperties.get(CodegenConstants.PACKAGE_VERSION));
         }
 
-        // Process Salvo-specific options
+        // Process Salvo-specific options; ensure defaults land in additionalProperties
+        // so templates can branch on them and tests can inspect them.
         if (additionalProperties.containsKey("enableRequestValidation")) {
             enableRequestValidation = convertPropertyToBooleanAndWriteBack("enableRequestValidation");
+        } else {
+            additionalProperties.put("enableRequestValidation", enableRequestValidation);
         }
 
         if (additionalProperties.containsKey("enableResponseValidation")) {
             enableResponseValidation = convertPropertyToBooleanAndWriteBack("enableResponseValidation");
+        } else {
+            additionalProperties.put("enableResponseValidation", enableResponseValidation);
         }
 
         if (additionalProperties.containsKey("enableAuthMiddleware")) {
             enableAuthMiddleware = convertPropertyToBooleanAndWriteBack("enableAuthMiddleware");
+        } else {
+            additionalProperties.put("enableAuthMiddleware", enableAuthMiddleware);
         }
 
         if (additionalProperties.containsKey("enableCorsMiddleware")) {
             enableCorsMiddleware = convertPropertyToBooleanAndWriteBack("enableCorsMiddleware");
+        } else {
+            additionalProperties.put("enableCorsMiddleware", enableCorsMiddleware);
         }
-
-
 
         additionalProperties.put(CodegenConstants.PACKAGE_NAME, packageName);
         additionalProperties.put("externCrateName", externCrateName);
@@ -340,9 +346,8 @@ public class RustSalvoServerCodegen extends AbstractRustCodegen implements Codeg
     }
 
     private String convertPathToSalvoFormat(String path) {
-        // Convert OpenAPI path format to Salvo path format
-        // e.g., "/users/{id}" -> "/users/<id>"
-        return path.replaceAll("\\{([^}]+)\\}", "<$1>");
+        // Salvo 0.76+ uses {name} for path parameters, matching OpenAPI.
+        return path;
     }
 
     @Override
@@ -378,24 +383,7 @@ public class RustSalvoServerCodegen extends AbstractRustCodegen implements Codeg
         return super.postProcessSupportingFileData(bundle);
     }
 
-    @Override
-    public OperationsMap postProcessOperationsWithModels(OperationsMap operations, List<ModelMap> allModels) {
-        OperationsMap result = super.postProcessOperationsWithModels(operations, allModels);
 
-        // Generate handler files for each tag/class
-        OperationMap operationMap = result.getOperations();
-        if (operationMap != null) {
-            String classname = operationMap.getClassname();
-            if (classname != null) {
-                // Add handler file for this operation group
-                supportingFiles.add(new SupportingFile("handlers.mustache",
-                    "src/handlers",
-                    sanitizeFilename(underscore(classname)) + ".rs"));
-            }
-        }
-
-        return result;
-    }
 
     @Override
     public void postProcessFile(File file, String fileType) {

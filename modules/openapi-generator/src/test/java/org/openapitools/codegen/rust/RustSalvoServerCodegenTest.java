@@ -24,7 +24,7 @@ public class RustSalvoServerCodegenTest {
 
         // Test default values
         Assert.assertEquals(codegen.getName(), "rust-salvo");
-        Assert.assertEquals(codegen.getPackage(), "salvo_openapi");
+        Assert.assertEquals(codegen.additionalProperties().get("packageName"), "salvo_openapi");
         Assert.assertTrue(codegen.additionalProperties().containsKey("enableRequestValidation"));
         Assert.assertTrue(codegen.additionalProperties().containsKey("enableAuthMiddleware"));
         Assert.assertTrue(codegen.additionalProperties().containsKey("enableCorsMiddleware"));
@@ -33,6 +33,7 @@ public class RustSalvoServerCodegenTest {
     @Test
     public void testBasicGeneration() throws IOException {
         Path target = Files.createTempDirectory("salvo-test");
+        System.out.println("📁 生成目录: " + target.toAbsolutePath());
         final CodegenConfigurator configurator = new CodegenConfigurator()
                 .setGeneratorName("rust-salvo")
                 .setInputSpec("src/test/resources/3_0/rust/rust-salvo-basic-test.yaml")
@@ -40,7 +41,12 @@ public class RustSalvoServerCodegenTest {
                 .setOutputDir(target.toAbsolutePath().toString().replace("\\", "/"));
 
         List<File> files = new DefaultGenerator().opts(configurator.toClientOptInput()).generate();
-        files.forEach(File::deleteOnExit);
+        System.out.println("✅ 生成了 " + files.size() + " 个文件:");
+        files.stream().limit(10).forEach(f -> System.out.println("  📄 " + f.getName()));
+        System.out.println("🗂️  完整目录结构:");
+        printDirectoryTree(target.toFile(), "  ");
+        // 注释掉删除文件的代码，这样我们可以检查生成的文件
+        // files.forEach(File::deleteOnExit);
 
         // Verify core files are generated
         TestUtils.assertFileExists(Path.of(target.toString(), "Cargo.toml"));
@@ -67,9 +73,10 @@ public class RustSalvoServerCodegenTest {
         Path handlersModPath = Path.of(target.toString(), "src/handlers/mod.rs");
         TestUtils.assertFileExists(handlersModPath);
 
-        // Check that the handlers module exports are present
-        TestUtils.assertFileContains(handlersModPath, "pub mod default;");
-        TestUtils.assertFileContains(handlersModPath, "pub use default::*;");
+        // Check that the handlers module exports are present.
+        // The basic test spec is tagged "pets", so the per-tag module should be `pets`.
+        TestUtils.assertFileContains(handlersModPath, "pub mod pets;");
+        TestUtils.assertFileContains(handlersModPath, "pub use pets::*;");
     }
 
     @Test
@@ -87,10 +94,10 @@ public class RustSalvoServerCodegenTest {
         // Verify Cargo.toml contains required dependencies
         Path cargoPath = Path.of(target.toString(), "Cargo.toml");
         TestUtils.assertFileExists(cargoPath);
-        TestUtils.assertFileContains(cargoPath, "salvo = { version = \"0.70\"");
-        TestUtils.assertFileContains(cargoPath, "serde = { version = \"1.0\"");
-        TestUtils.assertFileContains(cargoPath, "tokio = { version = \"1.0\"");
-        TestUtils.assertFileContains(cargoPath, "serde_json = \"1.0\"");
+        TestUtils.assertFileContains(cargoPath, "salvo = { version = \"0.93\"");
+        TestUtils.assertFileContains(cargoPath, "serde = { version = \"1\"");
+        TestUtils.assertFileContains(cargoPath, "tokio = { version = \"1\"");
+        TestUtils.assertFileContains(cargoPath, "serde_json = \"1\"");
     }
 
     @Test
@@ -100,16 +107,20 @@ public class RustSalvoServerCodegenTest {
                 .setGeneratorName("rust-salvo")
                 .setInputSpec("src/test/resources/3_0/rust/rust-salvo-auth-test.yaml")
                 .setSkipOverwrite(false)
-                .setAdditionalProperty("enableAuthMiddleware", "true")
+                .addAdditionalProperty("enableAuthMiddleware", "true")
                 .setOutputDir(target.toAbsolutePath().toString().replace("\\", "/"));
 
         List<File> files = new DefaultGenerator().opts(configurator.toClientOptInput()).generate();
         files.forEach(File::deleteOnExit);
 
-        // Verify middleware file is generated when auth is enabled
+        // Verify middleware file is generated when auth is enabled. The auth-test spec
+        // declares both an apiKey scheme and a basic scheme, so both auth structs and
+        // the entry-point function should appear.
         Path middlewarePath = Path.of(target.toString(), "src/middleware.rs");
         TestUtils.assertFileExists(middlewarePath);
-        TestUtils.assertFileContains(middlewarePath, "pub struct AuthMiddleware");
+        TestUtils.assertFileContains(middlewarePath, "pub struct ApiKeyAuth");
+        TestUtils.assertFileContains(middlewarePath, "pub struct BasicAuth");
+        TestUtils.assertFileContains(middlewarePath, "pub fn auth_middleware()");
     }
 
     @Test
@@ -119,7 +130,7 @@ public class RustSalvoServerCodegenTest {
                 .setGeneratorName("rust-salvo")
                 .setInputSpec("src/test/resources/3_0/rust/rust-salvo-validation-test.yaml")
                 .setSkipOverwrite(false)
-                .setAdditionalProperty("enableRequestValidation", "true")
+                .addAdditionalProperty("enableRequestValidation", "true")
                 .setOutputDir(target.toAbsolutePath().toString().replace("\\", "/"));
 
         List<File> files = new DefaultGenerator().opts(configurator.toClientOptInput()).generate();
@@ -128,7 +139,7 @@ public class RustSalvoServerCodegenTest {
         // Verify validation dependencies are included when enabled
         Path cargoPath = Path.of(target.toString(), "Cargo.toml");
         TestUtils.assertFileExists(cargoPath);
-        TestUtils.assertFileContains(cargoPath, "validator = { version = \"0.18\"");
+        TestUtils.assertFileContains(cargoPath, "validator = { version = \"0.20\"");
     }
 
     @Test
@@ -149,5 +160,21 @@ public class RustSalvoServerCodegenTest {
         TestUtils.assertFileContains(routesPath, "use salvo::prelude::*;");
         TestUtils.assertFileContains(routesPath, "pub fn create_router()");
         TestUtils.assertFileContains(routesPath, "Router::new()");
+    }
+
+    private static void printDirectoryTree(File dir, String indent) {
+        if (dir.isDirectory()) {
+            System.out.println(indent + "📁 " + dir.getName() + "/");
+            File[] files = dir.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (file.isDirectory()) {
+                        printDirectoryTree(file, indent + "  ");
+                    } else {
+                        System.out.println(indent + "  📄 " + file.getName());
+                    }
+                }
+            }
+        }
     }
 }

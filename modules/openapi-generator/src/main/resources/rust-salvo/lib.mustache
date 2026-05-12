@@ -51,14 +51,5 @@ pub fn create_service() -> Service {
 
 /// Create the main router with all API routes
 pub fn create_router() -> Router {
-    Router::new(){{#salvoRoutes}}
-        .push(create_{{&path}}_router()){{/salvoRoutes}}
+    routes::create_router()
 }
-
-{{#salvoRoutes}}
-/// Router for {{&path}}
-fn create_{{&path}}_router() -> Router {
-    Router::with_path("{{&path}}"){{#operations}}
-        .{{&method}}({{&handlerName}}){{/operations}}
-}
-{{/salvoRoutes}}
