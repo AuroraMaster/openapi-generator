@@ -99,6 +99,16 @@ Use `./new.sh -n <name> -s` (server) / `-c` (client) / `-t` (also scaffold a tes
 - Don't hand-edit anything under `samples/` or `docs/generators/` — both are regenerated outputs. Commit the regenerated versions alongside the source change.
 - `git config core.autocrlf input` is the recommended setting; samples contain a mix of platforms.
 
-## Current in-progress work
+## rust-salvo generator status
 
-The working tree has unfinished changes to the `rust-salvo` server generator: modifications to `RustSalvoServerCodegen.java`, its test, and `Cargo.mustache`/`handlers.mustache`/`lib.mustache`, plus an untracked `routes.mustache`. There is no `bin/configs/rust-salvo*.yaml` yet, so samples cannot be regenerated through the standard `generate-samples.sh` flow until one is added. The SPI registration is already in place (`RustSalvoServerCodegen` line in `org.openapitools.codegen.CodegenConfig`).
+This fork carries an in-development `rust-salvo` server generator alongside the upstream rust-axum / rust-server / rust-server-deprecated set. State at HEAD:
+
+- Pinned to **Salvo 0.93** with the `oapi` / `jwt-auth` / `cors` / `serve-static` features.
+- Handlers use the OpenAPI-aware `#[salvo::oapi::endpoint]` macro plus the typed extractors from `salvo::oapi::extract` (`JsonBody<T>`, `PathParam<T>`, `QueryParam<T, REQUIRED>`, `HeaderParam<T, REQUIRED>`, `FormBody<T>`). Models derive `salvo::oapi::ToSchema` so they flow through those extractors cleanly.
+- Routes use the modern `{name}` path syntax (Salvo 0.76+), driven by a `salvoRoutes` bundle populated in `postProcessSupportingFileData`.
+- Declared feature set in `RustSalvoServerCodegen` matches the rust-axum baseline (Composite + allOf + anyOf + oneOf, JSON wire format, ApiKey + Basic + Bearer security).
+- Authentication middleware: `ApiKeyAuth`, `BasicAuth`, `BearerAuth` (base64 0.22 `Engine` API), scaffolded when the spec has `securitySchemes` and `enableAuthMiddleware=true`.
+- Sample config: `bin/configs/manual/rust-salvo-petstore.yaml`. Tests live in `modules/openapi-generator/src/test/java/org/openapitools/codegen/rust/RustSalvoServerCodegenTest.java`. Generator doc: `docs/generators/rust-salvo.md`.
+- Validated end-to-end: all 7 Java tests pass, and the generated petstore (plus the three rust-salvo test specs) compile with `cargo check` — 0 errors, 0 warnings.
+
+Known parity gaps with rust-axum (not blockers but next steps if you ever want to upstream this): no inline-enum support, no oneOf/anyOf composition codegen, no `conversion` feature for type-level transmogrification, no `bin/configs/manual/*` matrix covering ops-v3 / multipart / array-params / etc.

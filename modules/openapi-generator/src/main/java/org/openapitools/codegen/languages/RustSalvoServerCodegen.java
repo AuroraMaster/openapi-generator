@@ -102,7 +102,9 @@ public class RustSalvoServerCodegen extends AbstractRustCodegen implements Codeg
                 .schemaSupportFeatures(EnumSet.of(
                         SchemaSupportFeature.Simple,
                         SchemaSupportFeature.Composite,
-                        SchemaSupportFeature.oneOf
+                        SchemaSupportFeature.oneOf,
+                        SchemaSupportFeature.anyOf,
+                        SchemaSupportFeature.allOf
                 ))
                 .excludeGlobalFeatures(
                         GlobalFeature.Info,
