@@ -329,14 +329,15 @@ public class RustSalvoServerCodegen extends AbstractRustCodegen implements Codeg
 
         // Salvo-specific operation processing
         String handlerName = underscore(op.operationId);
+        String method = httpMethod.toLowerCase(Locale.ROOT);
         op.vendorExtensions.put("x-handler-name", handlerName);
         op.vendorExtensions.put("x-route-path", convertPathToSalvoFormat(path));
-        op.vendorExtensions.put("x-http-method", httpMethod.toLowerCase());
+        op.vendorExtensions.put("x-http-method", method);
 
         // Group operations by route for Salvo router setup
         String salvoPath = convertPathToSalvoFormat(path);
         routeMap.computeIfAbsent(salvoPath, k -> new ArrayList<>())
-                .add(new SalvoOperation(httpMethod.toLowerCase(), handlerName, op.vendorExtensions));
+                .add(new SalvoOperation(method, handlerName, op.vendorExtensions));
 
         // Process authentication
         if (op.authMethods != null && !op.authMethods.isEmpty()) {
