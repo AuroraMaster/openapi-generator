@@ -27,7 +27,7 @@ use crate::models::{self, *};
 #[salvo::oapi::endpoint(
     operation_id = "{{operationId}}",
     tags("{{classname}}"){{#vendorExtensions.x-has-auth}},
-    security({{#vendorExtensions.x-salvo-auth-schemes}}("{{schemaName}}" = []){{^-last}}, {{/-last}}{{/vendorExtensions.x-salvo-auth-schemes}}){{/vendorExtensions.x-has-auth}}
+    security({{#vendorExtensions.x-salvo-auth-schemes}}("{{schemaName}}" = [{{#scopes}}"{{scope}}"{{^-last}}, {{/-last}}{{/scopes}}]){{^-last}}, {{/-last}}{{/vendorExtensions.x-salvo-auth-schemes}}){{/vendorExtensions.x-has-auth}}
 )]
 pub async fn {{operationId}}(
 {{#hasParams}}

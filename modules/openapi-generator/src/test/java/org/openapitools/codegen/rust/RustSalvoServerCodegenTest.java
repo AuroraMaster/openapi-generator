@@ -138,6 +138,27 @@ public class RustSalvoServerCodegenTest {
     }
 
     @Test
+    public void testOAuth2ScopesPropagateToEndpointAnnotation() throws IOException {
+        Path target = Files.createTempDirectory("salvo-oauth-scopes-test");
+        final CodegenConfigurator configurator = new CodegenConfigurator()
+                .setGeneratorName("rust-salvo")
+                .setInputSpec("src/test/resources/3_0/petstore.yaml")
+                .setSkipOverwrite(false)
+                .setOutputDir(target.toAbsolutePath().toString().replace("\\", "/"));
+
+        List<File> files = new DefaultGenerator().opts(configurator.toClientOptInput()).generate();
+        files.forEach(File::deleteOnExit);
+
+        // Petstore's `petstore_auth` OAuth2 scheme grants `write:pets` and
+        // `read:pets`; the generated endpoint annotation must carry those
+        // exact scopes rather than an empty list.
+        Path petHandlersPath = Path.of(target.toString(), "src/handlers/pet.rs");
+        TestUtils.assertFileExists(petHandlersPath);
+        TestUtils.assertFileContains(petHandlersPath,
+                "security((\"OAuth2\" = [\"write:pets\", \"read:pets\"]))");
+    }
+
+    @Test
     public void testSerdeRenameOnCamelCaseFields() throws IOException {
         Path target = Files.createTempDirectory("salvo-rename-test");
         final CodegenConfigurator configurator = new CodegenConfigurator()

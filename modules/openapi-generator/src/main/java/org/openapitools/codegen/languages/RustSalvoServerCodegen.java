@@ -472,37 +472,67 @@ public class RustSalvoServerCodegen extends AbstractRustCodegen implements Codeg
 
     // Auth scheme descriptor exposed to templates. `kind` is used to pick the
     // factory function in routes.mustache; `schemaName` shows up in the
-    // `#[salvo::oapi::endpoint(security(...))]` annotation.
+    // `#[salvo::oapi::endpoint(security(...))]` annotation along with any
+    // declared OAuth2/OIDC scopes.
     static class SalvoAuthScheme {
-        public String kind;        // "apiKey" | "basic" | "bearer"
-        public String factory;     // factory fn in middleware.rs
+        public String kind;        // "apiKey" | "basic" | "bearer" | "oauth2"
+        public String factory;     // factory fn in middleware.rs, null for oauth2
         public String schemaName;  // name used in OpenAPI security() annotation
+        public List<SalvoAuthScope> scopes;
 
-        SalvoAuthScheme(String kind, String factory, String schemaName) {
+        SalvoAuthScheme(String kind, String factory, String schemaName, List<SalvoAuthScope> scopes) {
             this.kind = kind;
             this.factory = factory;
             this.schemaName = schemaName;
+            this.scopes = scopes;
         }
 
         static SalvoAuthScheme fromCodegen(CodegenSecurity sec) {
+            List<SalvoAuthScope> scopeList = extractScopes(sec);
             if (Boolean.TRUE.equals(sec.isApiKey)) {
-                return new SalvoAuthScheme("apiKey", "api_key_auth", "ApiKeyAuth");
+                return new SalvoAuthScheme("apiKey", "api_key_auth", "ApiKeyAuth", scopeList);
             }
             if (Boolean.TRUE.equals(sec.isBasic) && Boolean.TRUE.equals(sec.isBasicBearer)) {
-                return new SalvoAuthScheme("bearer", "bearer_auth", "BearerAuth");
+                return new SalvoAuthScheme("bearer", "bearer_auth", "BearerAuth", scopeList);
             }
             if (Boolean.TRUE.equals(sec.isBasic) && Boolean.TRUE.equals(sec.isBasicBasic)) {
-                return new SalvoAuthScheme("basic", "basic_auth_hoop", "BasicAuth");
+                return new SalvoAuthScheme("basic", "basic_auth_hoop", "BasicAuth", scopeList);
             }
             if (Boolean.TRUE.equals(sec.isBasic)) {
-                return new SalvoAuthScheme("basic", "basic_auth_hoop", "BasicAuth");
+                return new SalvoAuthScheme("basic", "basic_auth_hoop", "BasicAuth", scopeList);
             }
             // OAuth2 / OpenIdConnect: leave runtime enforcement to the user,
-            // but still surface the scheme so the OpenAPI annotation is correct.
+            // but surface the scheme + scopes so the OpenAPI annotation stays
+            // faithful to the source spec.
             if (Boolean.TRUE.equals(sec.isOAuth)) {
-                return new SalvoAuthScheme("oauth2", null, "OAuth2");
+                return new SalvoAuthScheme("oauth2", null, "OAuth2", scopeList);
             }
             return null;
+        }
+
+        @SuppressWarnings("unchecked")
+        private static List<SalvoAuthScope> extractScopes(CodegenSecurity sec) {
+            List<SalvoAuthScope> out = new ArrayList<>();
+            if (sec.scopes == null) {
+                return out;
+            }
+            for (Map<String, Object> entry : sec.scopes) {
+                Object name = entry.get("scope");
+                if (name != null) {
+                    out.add(new SalvoAuthScope(name.toString()));
+                }
+            }
+            return out;
+        }
+    }
+
+    // Single OAuth2/OIDC scope name. Held in its own class so mustache can
+    // render the comma-separated list naturally with `{{#-last}}` semantics.
+    static class SalvoAuthScope {
+        public String scope;
+
+        SalvoAuthScope(String scope) {
+            this.scope = scope;
         }
     }
 

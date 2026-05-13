@@ -24,7 +24,7 @@ use crate::models::{self, *};
 #[salvo::oapi::endpoint(
     operation_id = "add_pet",
     tags("pet"),
-    security(("OAuth2" = []))
+    security(("OAuth2" = ["write:pets", "read:pets"]))
 )]
 pub async fn add_pet(
     pet: JsonBody<Pet>,
@@ -40,7 +40,7 @@ pub async fn add_pet(
 #[salvo::oapi::endpoint(
     operation_id = "delete_pet",
     tags("pet"),
-    security(("OAuth2" = []))
+    security(("OAuth2" = ["write:pets", "read:pets"]))
 )]
 pub async fn delete_pet(
     pet_id: PathParam<i64>,
@@ -57,7 +57,7 @@ pub async fn delete_pet(
 #[salvo::oapi::endpoint(
     operation_id = "find_pets_by_status",
     tags("pet"),
-    security(("OAuth2" = []))
+    security(("OAuth2" = ["read:pets"]))
 )]
 pub async fn find_pets_by_status(
     status: QueryParam<Vec<String>, true>,
@@ -73,7 +73,7 @@ pub async fn find_pets_by_status(
 #[salvo::oapi::endpoint(
     operation_id = "find_pets_by_tags",
     tags("pet"),
-    security(("OAuth2" = []))
+    security(("OAuth2" = ["read:pets"]))
 )]
 pub async fn find_pets_by_tags(
     tags: QueryParam<Vec<String>, true>,
@@ -105,7 +105,7 @@ pub async fn get_pet_by_id(
 #[salvo::oapi::endpoint(
     operation_id = "update_pet",
     tags("pet"),
-    security(("OAuth2" = []))
+    security(("OAuth2" = ["write:pets", "read:pets"]))
 )]
 pub async fn update_pet(
     pet: JsonBody<Pet>,
@@ -121,7 +121,7 @@ pub async fn update_pet(
 #[salvo::oapi::endpoint(
     operation_id = "update_pet_with_form",
     tags("pet"),
-    security(("OAuth2" = []))
+    security(("OAuth2" = ["write:pets", "read:pets"]))
 )]
 pub async fn update_pet_with_form(
     pet_id: PathParam<i64>,
@@ -139,7 +139,7 @@ pub async fn update_pet_with_form(
 #[salvo::oapi::endpoint(
     operation_id = "upload_file",
     tags("pet"),
-    security(("OAuth2" = []))
+    security(("OAuth2" = ["write:pets", "read:pets"]))
 )]
 pub async fn upload_file(
     pet_id: PathParam<i64>,
