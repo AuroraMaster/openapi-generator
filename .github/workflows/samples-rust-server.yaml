@@ -5,10 +5,12 @@ on:
     paths:
       - "samples/server/petstore/rust-server/**"
       - "samples/server/petstore/rust-axum/**"
+      - "samples/server/petstore/rust-salvo/**"
   pull_request:
     paths:
       - "samples/server/petstore/rust-server/**"
       - "samples/server/petstore/rust-axum/**"
+      - "samples/server/petstore/rust-salvo/**"
 
 jobs:
   build:
@@ -84,3 +86,28 @@ jobs:
             cargo doc
             popd
           done
+
+  build-salvo:
+    name: Build Rust (salvo)
+    runs-on: ubuntu-latest
+    # The rust-salvo sample is a single crate (not the output/* multi-crate
+    # layout used by rust-server / rust-axum) so it gets a dedicated, simpler
+    # job rather than a matrix entry.
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: samples/server/petstore/rust-salvo/output/petstore
+
+      - name: Build
+        working-directory: samples/server/petstore/rust-salvo/output/petstore
+        run: |
+          set -e
+          cargo check --all-targets
+          cargo clippy --all-targets

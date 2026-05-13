@@ -65,6 +65,35 @@ RUST_LOG=debug cargo run # with verbose logging
 ## API endpoints
 
 
+### pet
+
+- **POST** `/pet` — Add a new pet to the store
+- **DELETE** `/pet/{petId}` — Deletes a pet
+- **GET** `/pet/findByStatus` — Finds Pets by status
+- **GET** `/pet/findByTags` — Finds Pets by tags
+- **GET** `/pet/{petId}` — Find pet by ID
+- **PUT** `/pet` — Update an existing pet
+- **POST** `/pet/{petId}` — Updates a pet in the store with form data
+- **POST** `/pet/{petId}/uploadImage` — uploads an image
+
+### store
+
+- **DELETE** `/store/order/{orderId}` — Delete purchase order by ID
+- **GET** `/store/inventory` — Returns pet inventories by status
+- **GET** `/store/order/{orderId}` — Find purchase order by ID
+- **POST** `/store/order` — Place an order for a pet
+
+### user
+
+- **POST** `/user` — Create user
+- **POST** `/user/createWithArray` — Creates list of users with given input array
+- **POST** `/user/createWithList` — Creates list of users with given input array
+- **DELETE** `/user/{username}` — Delete user
+- **GET** `/user/{username}` — Get user by user name
+- **GET** `/user/login` — Logs user into the system
+- **GET** `/user/logout` — Logs out current logged in user session
+- **PUT** `/user/{username}` — Updated user
+
 
 ## Extending
 

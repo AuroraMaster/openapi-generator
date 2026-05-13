@@ -48,6 +48,37 @@ paths:
           description: Unauthorized
         '403':
           description: Forbidden
+  /report:
+    get:
+      operationId: getReport
+      summary: Get a report (Basic-auth protected)
+      security:
+        - BasicAuth: []
+      responses:
+        '200':
+          description: Report payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  title:
+                    type: string
+        '401':
+          description: Unauthorized
+  /search:
+    get:
+      operationId: searchAny
+      summary: Endpoint that accepts any of the configured auth schemes (OR)
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+        - BasicAuth: []
+      responses:
+        '200':
+          description: Results
+        '401':
+          description: Unauthorized
 components:
   schemas:
     Error:
@@ -70,3 +101,6 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    BasicAuth:
+      type: http
+      scheme: basic

@@ -5,6 +5,11 @@
 
 use salvo::prelude::*;
 use crate::handlers::*;
+{{#enableAuthMiddleware}}
+{{#hasAuthHandlers}}
+use crate::middleware::*;
+{{/hasAuthHandlers}}
+{{/enableAuthMiddleware}}
 
 /// Create the main router with all API routes
 pub fn create_router() -> Router {
@@ -14,7 +19,11 @@ pub fn create_router() -> Router {
     // Routes for {{path}}
     router = router.push(
         Router::with_path("{{path}}"){{#operations}}
-            .{{method}}({{handlerName}}){{/operations}}
+            .push(
+                Router::new()
+                    .{{method}}({{handlerName}}){{#enableAuthMiddleware}}{{#hasAuth}}{{#authSchemes}}{{#factory}}
+                    .hoop({{factory}}()){{/factory}}{{/authSchemes}}{{/hasAuth}}{{/enableAuthMiddleware}}
+            ){{/operations}}
     );
     {{/salvoRoutes}}
 

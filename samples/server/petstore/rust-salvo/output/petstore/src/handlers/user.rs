@@ -23,7 +23,8 @@ use crate::models::{self, *};
 /// This can only be done by the logged in user.
 #[salvo::oapi::endpoint(
     operation_id = "create_user",
-    tags("user")
+    tags("user"),
+    security(("ApiKeyAuth" = []))
 )]
 pub async fn create_user(
     user: JsonBody<User>,
@@ -38,7 +39,8 @@ pub async fn create_user(
 /// 
 #[salvo::oapi::endpoint(
     operation_id = "create_users_with_array_input",
-    tags("user")
+    tags("user"),
+    security(("ApiKeyAuth" = []))
 )]
 pub async fn create_users_with_array_input(
     user: JsonBody<Vec<models::User>>,
@@ -53,7 +55,8 @@ pub async fn create_users_with_array_input(
 /// 
 #[salvo::oapi::endpoint(
     operation_id = "create_users_with_list_input",
-    tags("user")
+    tags("user"),
+    security(("ApiKeyAuth" = []))
 )]
 pub async fn create_users_with_list_input(
     user: JsonBody<Vec<models::User>>,
@@ -68,7 +71,8 @@ pub async fn create_users_with_list_input(
 /// This can only be done by the logged in user.
 #[salvo::oapi::endpoint(
     operation_id = "delete_user",
-    tags("user")
+    tags("user"),
+    security(("ApiKeyAuth" = []))
 )]
 pub async fn delete_user(
     username: PathParam<String>,
@@ -114,7 +118,8 @@ pub async fn login_user(
 /// 
 #[salvo::oapi::endpoint(
     operation_id = "logout_user",
-    tags("user")
+    tags("user"),
+    security(("ApiKeyAuth" = []))
 )]
 pub async fn logout_user(
     res: &mut Response,
@@ -128,7 +133,8 @@ pub async fn logout_user(
 /// This can only be done by the logged in user.
 #[salvo::oapi::endpoint(
     operation_id = "update_user",
-    tags("user")
+    tags("user"),
+    security(("ApiKeyAuth" = []))
 )]
 pub async fn update_user(
     username: PathParam<String>,

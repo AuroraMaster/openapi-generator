@@ -15,6 +15,19 @@ use salvo::prelude::*;
 use serde::{Deserialize, Serialize};
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 
+/// Case-insensitively strip an `Authorization` scheme prefix
+/// (e.g. `Bearer ` or `Basic `) and return the trimmed credential.
+fn strip_scheme_prefix<'a>(header: &'a str, scheme: &str) -> Option<&'a str> {
+    if header.len() <= scheme.len() {
+        return None;
+    }
+    let (prefix, rest) = header.split_at(scheme.len());
+    if !prefix.eq_ignore_ascii_case(scheme) {
+        return None;
+    }
+    let rest = rest.strip_prefix(' ')?;
+    Some(rest.trim_start())
+}
 
 
 /// API Key authentication middleware
@@ -52,15 +65,28 @@ impl Handler for ApiKeyAuth {
     }
 }
 
+/// Factory used as a per-route `.hoop(api_key_auth())`.
+/// Replace the placeholder with credentials sourced from your config.
+pub fn api_key_auth() -> ApiKeyAuth {
+    ApiKeyAuth::new("api_key", "your-api-key")
+}
 
 
-/// Create authentication middleware
+/// Backwards-compatible entry point used by older generated code paths.
+///
+/// Returns a no-op handler so attaching it as a hoop is harmless; per-route
+/// authentication is wired up via the per-scheme factories above.
 pub fn auth_middleware() -> impl Handler {
-    // Configure your authentication method here
-    // Example: ApiKeyAuth::new("X-API-Key", "your-api-key")
-    // Example: BasicAuth::new("username", "password")
-    // Example: BearerAuth::new("your-bearer-token")
+    NoneHandler
+}
 
-    BasicAuth::new("admin", "password") // Default example - change this!
+#[derive(Debug, Clone)]
+pub struct NoneHandler;
+
+#[async_trait::async_trait]
+impl Handler for NoneHandler {
+    async fn handle(&self, req: &mut Request, depot: &mut Depot, res: &mut Response, ctrl: &mut FlowCtrl) {
+        ctrl.call_next(req, depot, res).await;
+    }
 }
 

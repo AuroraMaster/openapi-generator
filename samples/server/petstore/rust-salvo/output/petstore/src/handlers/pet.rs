@@ -23,7 +23,8 @@ use crate::models::{self, *};
 /// 
 #[salvo::oapi::endpoint(
     operation_id = "add_pet",
-    tags("pet")
+    tags("pet"),
+    security(("OAuth2" = []))
 )]
 pub async fn add_pet(
     pet: JsonBody<Pet>,
@@ -38,7 +39,8 @@ pub async fn add_pet(
 /// 
 #[salvo::oapi::endpoint(
     operation_id = "delete_pet",
-    tags("pet")
+    tags("pet"),
+    security(("OAuth2" = []))
 )]
 pub async fn delete_pet(
     pet_id: PathParam<i64>,
@@ -54,7 +56,8 @@ pub async fn delete_pet(
 /// Multiple status values can be provided with comma separated strings
 #[salvo::oapi::endpoint(
     operation_id = "find_pets_by_status",
-    tags("pet")
+    tags("pet"),
+    security(("OAuth2" = []))
 )]
 pub async fn find_pets_by_status(
     status: QueryParam<Vec<String>, true>,
@@ -69,7 +72,8 @@ pub async fn find_pets_by_status(
 /// Multiple tags can be provided with comma separated strings. Use tag1, tag2, tag3 for testing.
 #[salvo::oapi::endpoint(
     operation_id = "find_pets_by_tags",
-    tags("pet")
+    tags("pet"),
+    security(("OAuth2" = []))
 )]
 pub async fn find_pets_by_tags(
     tags: QueryParam<Vec<String>, true>,
@@ -84,7 +88,8 @@ pub async fn find_pets_by_tags(
 /// Returns a single pet
 #[salvo::oapi::endpoint(
     operation_id = "get_pet_by_id",
-    tags("pet")
+    tags("pet"),
+    security(("ApiKeyAuth" = []))
 )]
 pub async fn get_pet_by_id(
     pet_id: PathParam<i64>,
@@ -99,7 +104,8 @@ pub async fn get_pet_by_id(
 /// 
 #[salvo::oapi::endpoint(
     operation_id = "update_pet",
-    tags("pet")
+    tags("pet"),
+    security(("OAuth2" = []))
 )]
 pub async fn update_pet(
     pet: JsonBody<Pet>,
@@ -114,7 +120,8 @@ pub async fn update_pet(
 /// 
 #[salvo::oapi::endpoint(
     operation_id = "update_pet_with_form",
-    tags("pet")
+    tags("pet"),
+    security(("OAuth2" = []))
 )]
 pub async fn update_pet_with_form(
     pet_id: PathParam<i64>,
@@ -131,7 +138,8 @@ pub async fn update_pet_with_form(
 /// 
 #[salvo::oapi::endpoint(
     operation_id = "upload_file",
-    tags("pet")
+    tags("pet"),
+    security(("OAuth2" = []))
 )]
 pub async fn upload_file(
     pet_id: PathParam<i64>,

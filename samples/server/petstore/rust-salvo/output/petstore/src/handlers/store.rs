@@ -38,7 +38,8 @@ pub async fn delete_order(
 /// Returns a map of status codes to quantities
 #[salvo::oapi::endpoint(
     operation_id = "get_inventory",
-    tags("store")
+    tags("store"),
+    security(("ApiKeyAuth" = []))
 )]
 pub async fn get_inventory(
     res: &mut Response,

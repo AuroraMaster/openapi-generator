@@ -6,6 +6,20 @@ use salvo::prelude::*;
 use serde::{Deserialize, Serialize};
 {{#hasAuthMethods}}
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
+
+/// Case-insensitively strip an `Authorization` scheme prefix
+/// (e.g. `Bearer ` or `Basic `) and return the trimmed credential.
+fn strip_scheme_prefix<'a>(header: &'a str, scheme: &str) -> Option<&'a str> {
+    if header.len() <= scheme.len() {
+        return None;
+    }
+    let (prefix, rest) = header.split_at(scheme.len());
+    if !prefix.eq_ignore_ascii_case(scheme) {
+        return None;
+    }
+    let rest = rest.strip_prefix(' ')?;
+    Some(rest.trim_start())
+}
 {{/hasAuthMethods}}
 
 {{#hasAuthMethods}}
@@ -50,9 +64,16 @@ impl Handler for ApiKeyAuth {
         ctrl.skip_rest();
     }
 }
+
+/// Factory used as a per-route `.hoop(api_key_auth())`.
+/// Replace the placeholder with credentials sourced from your config.
+pub fn api_key_auth() -> ApiKeyAuth {
+    ApiKeyAuth::new("{{keyParamName}}", "your-api-key")
+}
 {{/isApiKey}}
 
 {{#isBasic}}
+{{#isBasicBasic}}
 /// Basic authentication middleware
 #[derive(Debug, Clone)]
 pub struct BasicAuth {
@@ -75,8 +96,7 @@ impl Handler for BasicAuth {
         if let Some(auth_header) = req.headers().get("authorization")
             .and_then(|v| v.to_str().ok()) {
 
-            if auth_header.starts_with("Basic ") {
-                let encoded = &auth_header[6..];
+            if let Some(encoded) = strip_scheme_prefix(auth_header, "Basic") {
                 if let Ok(decoded) = BASE64_STANDARD.decode(encoded) {
                     if let Ok(credentials) = String::from_utf8(decoded) {
                         let parts: Vec<&str> = credentials.splitn(2, ':').collect();
@@ -95,9 +115,14 @@ impl Handler for BasicAuth {
         ctrl.skip_rest();
     }
 }
-{{/isBasic}}
 
-{{#isBearer}}
+/// Factory used as a per-route `.hoop(basic_auth_hoop())`.
+pub fn basic_auth_hoop() -> BasicAuth {
+    BasicAuth::new("admin", "password")
+}
+{{/isBasicBasic}}
+
+{{#isBasicBearer}}
 /// Bearer token authentication middleware
 #[derive(Debug, Clone)]
 pub struct BearerAuth {
@@ -118,8 +143,7 @@ impl Handler for BearerAuth {
         if let Some(auth_header) = req.headers().get("authorization")
             .and_then(|v| v.to_str().ok()) {
 
-            if auth_header.starts_with("Bearer ") {
-                let token = &auth_header[7..];
+            if let Some(token) = strip_scheme_prefix(auth_header, "Bearer") {
                 if token == self.token {
                     ctrl.call_next(req, depot, res).await;
                     return;
@@ -132,17 +156,31 @@ impl Handler for BearerAuth {
         ctrl.skip_rest();
     }
 }
-{{/isBearer}}
+
+/// Factory used as a per-route `.hoop(bearer_auth())`.
+pub fn bearer_auth() -> BearerAuth {
+    BearerAuth::new("your-bearer-token")
+}
+{{/isBasicBearer}}
+{{/isBasic}}
 {{/authMethods}}
 
-/// Create authentication middleware
+/// Backwards-compatible entry point used by older generated code paths.
+///
+/// Returns a no-op handler so attaching it as a hoop is harmless; per-route
+/// authentication is wired up via the per-scheme factories above.
 pub fn auth_middleware() -> impl Handler {
-    // Configure your authentication method here
-    // Example: ApiKeyAuth::new("X-API-Key", "your-api-key")
-    // Example: BasicAuth::new("username", "password")
-    // Example: BearerAuth::new("your-bearer-token")
+    NoneHandler
+}
 
-    BasicAuth::new("admin", "password") // Default example - change this!
+#[derive(Debug, Clone)]
+pub struct NoneHandler;
+
+#[async_trait::async_trait]
+impl Handler for NoneHandler {
+    async fn handle(&self, req: &mut Request, depot: &mut Depot, res: &mut Response, ctrl: &mut FlowCtrl) {
+        ctrl.call_next(req, depot, res).await;
+    }
 }
 {{/hasAuthMethods}}
 

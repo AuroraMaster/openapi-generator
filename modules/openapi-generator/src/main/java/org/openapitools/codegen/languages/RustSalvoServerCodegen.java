@@ -334,16 +334,13 @@ public class RustSalvoServerCodegen extends AbstractRustCodegen implements Codeg
         op.vendorExtensions.put("x-route-path", convertPathToSalvoFormat(path));
         op.vendorExtensions.put("x-http-method", method);
 
-        // Group operations by route for Salvo router setup
+        // Group operations by route for Salvo router setup. AuthSchemes is
+        // populated later in postProcessOperationsWithModels because
+        // CodegenOperation.authMethods is set by DefaultGenerator AFTER
+        // fromOperation returns.
         String salvoPath = convertPathToSalvoFormat(path);
         routeMap.computeIfAbsent(salvoPath, k -> new ArrayList<>())
-                .add(new SalvoOperation(method, handlerName, op.vendorExtensions));
-
-        // Process authentication
-        if (op.authMethods != null && !op.authMethods.isEmpty()) {
-            hasAuthHandlers = true;
-            op.vendorExtensions.put("x-has-auth", true);
-        }
+                .add(new SalvoOperation(method, handlerName, op.vendorExtensions, Collections.emptyList()));
 
         return op;
     }
@@ -357,6 +354,43 @@ public class RustSalvoServerCodegen extends AbstractRustCodegen implements Codeg
     public OperationsMap postProcessOperationsWithModels(OperationsMap operationsMap, List<ModelMap> allModels) {
         OperationMap operations = operationsMap.getOperations();
         operations.put("classnamePascalCase", camelize(operations.getClassname()));
+
+        for (CodegenOperation op : operations.getOperation()) {
+            List<SalvoAuthScheme> opAuthSchemes = new ArrayList<>();
+            if (op.authMethods != null && !op.authMethods.isEmpty()) {
+                LinkedHashSet<String> seen = new LinkedHashSet<>();
+                for (CodegenSecurity sec : op.authMethods) {
+                    SalvoAuthScheme s = SalvoAuthScheme.fromCodegen(sec);
+                    if (s != null && seen.add(s.kind)) {
+                        opAuthSchemes.add(s);
+                    }
+                }
+            }
+
+            boolean opHasAuth = !opAuthSchemes.isEmpty();
+            if (opHasAuth) {
+                hasAuthHandlers = true;
+                op.vendorExtensions.put("x-has-auth", true);
+                op.vendorExtensions.put("x-salvo-auth-schemes", opAuthSchemes);
+                op.vendorExtensions.put("x-salvo-auth-multi", opAuthSchemes.size() > 1);
+            }
+
+            // Mirror the schemes onto the matching SalvoOperation so routes.mustache
+            // can attach per-route hoops without having to flatten vendorExtensions.
+            String handlerName = (String) op.vendorExtensions.get("x-handler-name");
+            String method = (String) op.vendorExtensions.get("x-http-method");
+            if (handlerName != null && method != null) {
+                for (ArrayList<SalvoOperation> group : routeMap.values()) {
+                    for (SalvoOperation so : group) {
+                        if (method.equals(so.method) && handlerName.equals(so.handlerName)) {
+                            so.authSchemes = opAuthSchemes;
+                            so.hasAuth = opHasAuth;
+                            so.multiAuth = opAuthSchemes.size() > 1;
+                        }
+                    }
+                }
+            }
+        }
 
         if (hasAuthHandlers) {
             operations.put("hasAuthHandlers", true);
@@ -411,11 +445,18 @@ public class RustSalvoServerCodegen extends AbstractRustCodegen implements Codeg
         public String method;
         public String handlerName;
         public Map<String, Object> vendorExtensions;
+        public List<SalvoAuthScheme> authSchemes;
+        public boolean hasAuth;
+        public boolean multiAuth;
 
-        SalvoOperation(String method, String handlerName, Map<String, Object> vendorExtensions) {
+        SalvoOperation(String method, String handlerName, Map<String, Object> vendorExtensions,
+                       List<SalvoAuthScheme> authSchemes) {
             this.method = method;
             this.handlerName = handlerName;
             this.vendorExtensions = vendorExtensions;
+            this.authSchemes = authSchemes == null ? Collections.emptyList() : authSchemes;
+            this.hasAuth = !this.authSchemes.isEmpty();
+            this.multiAuth = this.authSchemes.size() > 1;
         }
     }
 
@@ -426,6 +467,55 @@ public class RustSalvoServerCodegen extends AbstractRustCodegen implements Codeg
         SalvoRouteGroup(String path, ArrayList<SalvoOperation> operations) {
             this.path = path;
             this.operations = operations;
+        }
+    }
+
+    // Auth scheme descriptor exposed to templates. `kind` is used to pick the
+    // factory function in routes.mustache; `schemaName` shows up in the
+    // `#[salvo::oapi::endpoint(security(...))]` annotation.
+    static class SalvoAuthScheme {
+        public String kind;        // "apiKey" | "basic" | "bearer"
+        public String factory;     // factory fn in middleware.rs
+        public String schemaName;  // name used in OpenAPI security() annotation
+
+        SalvoAuthScheme(String kind, String factory, String schemaName) {
+            this.kind = kind;
+            this.factory = factory;
+            this.schemaName = schemaName;
+        }
+
+        static SalvoAuthScheme fromCodegen(CodegenSecurity sec) {
+            if (Boolean.TRUE.equals(sec.isApiKey)) {
+                return new SalvoAuthScheme("apiKey", "api_key_auth", "ApiKeyAuth");
+            }
+            if (Boolean.TRUE.equals(sec.isBasic) && Boolean.TRUE.equals(sec.isBasicBearer)) {
+                return new SalvoAuthScheme("bearer", "bearer_auth", "BearerAuth");
+            }
+            if (Boolean.TRUE.equals(sec.isBasic) && Boolean.TRUE.equals(sec.isBasicBasic)) {
+                return new SalvoAuthScheme("basic", "basic_auth_hoop", "BasicAuth");
+            }
+            if (Boolean.TRUE.equals(sec.isBasic)) {
+                return new SalvoAuthScheme("basic", "basic_auth_hoop", "BasicAuth");
+            }
+            // OAuth2 / OpenIdConnect: leave runtime enforcement to the user,
+            // but still surface the scheme so the OpenAPI annotation is correct.
+            if (Boolean.TRUE.equals(sec.isOAuth)) {
+                return new SalvoAuthScheme("oauth2", null, "OAuth2");
+            }
+            return null;
+        }
+    }
+
+    @Override
+    public void postProcessModelProperty(CodegenModel model, CodegenProperty property) {
+        super.postProcessModelProperty(model, property);
+        // Surface a serde rename whenever the Rust field name (already snake_cased
+        // and keyword-escaped by AbstractRustCodegen.toVarName) differs from the
+        // OpenAPI wire name, so JSON contracts stay intact (e.g. `petId` on the
+        // wire, `pet_id` in Rust).
+        if (property.baseName != null && property.name != null
+                && !property.name.equals(property.baseName)) {
+            property.vendorExtensions.put("x-salvo-serde-rename", true);
         }
     }
 }

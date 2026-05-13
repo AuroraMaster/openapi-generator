@@ -28,7 +28,10 @@ pub use routes::*;
 use salvo::prelude::*;
 
 
-/// Create and configure the Salvo service
+/// Create and configure the Salvo service.
+///
+/// Authentication middleware is attached per route (see `routes.rs`) so that
+/// public operations are not blocked by a global auth hoop.
 pub fn create_service() -> Service {
     let router = create_router();
 

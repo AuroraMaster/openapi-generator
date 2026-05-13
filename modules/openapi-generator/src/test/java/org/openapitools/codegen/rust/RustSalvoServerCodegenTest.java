@@ -113,14 +113,52 @@ public class RustSalvoServerCodegenTest {
         List<File> files = new DefaultGenerator().opts(configurator.toClientOptInput()).generate();
         files.forEach(File::deleteOnExit);
 
-        // Verify middleware file is generated when auth is enabled. The auth-test spec
-        // declares both an apiKey scheme and a basic scheme, so both auth structs and
-        // the entry-point function should appear.
+        // The auth-test spec declares ApiKey, Basic, and Bearer schemes; all three
+        // structs plus their per-route factory functions should appear.
         Path middlewarePath = Path.of(target.toString(), "src/middleware.rs");
         TestUtils.assertFileExists(middlewarePath);
         TestUtils.assertFileContains(middlewarePath, "pub struct ApiKeyAuth");
         TestUtils.assertFileContains(middlewarePath, "pub struct BasicAuth");
+        TestUtils.assertFileContains(middlewarePath, "pub struct BearerAuth");
         TestUtils.assertFileContains(middlewarePath, "pub fn auth_middleware()");
+        TestUtils.assertFileContains(middlewarePath, "pub fn api_key_auth()");
+        TestUtils.assertFileContains(middlewarePath, "pub fn basic_auth_hoop()");
+        TestUtils.assertFileContains(middlewarePath, "pub fn bearer_auth()");
+        // Case-insensitive Authorization scheme prefix matching.
+        TestUtils.assertFileContains(middlewarePath, "eq_ignore_ascii_case");
+
+        // Routes file should wire auth per-route (no global hoop in lib.rs).
+        Path routesPath = Path.of(target.toString(), "src/routes.rs");
+        TestUtils.assertFileContains(routesPath, ".hoop(api_key_auth())");
+        TestUtils.assertFileContains(routesPath, ".hoop(bearer_auth())");
+        TestUtils.assertFileContains(routesPath, ".hoop(basic_auth_hoop())");
+
+        Path libPath = Path.of(target.toString(), "src/lib.rs");
+        TestUtils.assertFileNotContains(libPath, ".hoop(auth_middleware())");
+    }
+
+    @Test
+    public void testSerdeRenameOnCamelCaseFields() throws IOException {
+        Path target = Files.createTempDirectory("salvo-rename-test");
+        final CodegenConfigurator configurator = new CodegenConfigurator()
+                .setGeneratorName("rust-salvo")
+                .setInputSpec("src/test/resources/3_0/petstore.yaml")
+                .setSkipOverwrite(false)
+                .setOutputDir(target.toAbsolutePath().toString().replace("\\", "/"));
+
+        List<File> files = new DefaultGenerator().opts(configurator.toClientOptInput()).generate();
+        files.forEach(File::deleteOnExit);
+
+        // Petstore has `petId`, `shipDate`, `photoUrls` — Rust snake_cases them
+        // to `pet_id` / `ship_date` / `photo_urls`; a serde rename must preserve
+        // the OpenAPI wire name.
+        Path modelsPath = Path.of(target.toString(), "src/models.rs");
+        TestUtils.assertFileExists(modelsPath);
+        TestUtils.assertFileContains(modelsPath, "#[serde(rename = \"petId\"");
+        TestUtils.assertFileContains(modelsPath, "#[serde(rename = \"shipDate\"");
+        TestUtils.assertFileContains(modelsPath, "#[serde(rename = \"photoUrls\"");
+        // Identical names (e.g. `id`, `name`) should NOT get a redundant rename.
+        TestUtils.assertFileNotContains(modelsPath, "#[serde(rename = \"id\"");
     }
 
     @Test

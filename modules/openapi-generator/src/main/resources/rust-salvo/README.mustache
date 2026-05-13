@@ -84,14 +84,18 @@ RUST_LOG=debug cargo run # with verbose logging
 API documentation is available at: {{.}}
 {{/apiDocumentationUrl}}
 
-{{#operations}}
+{{#apiInfo}}
+{{#apis}}
 ### {{classname}}
 
+{{#operations}}
 {{#operation}}
 - **{{httpMethod}}** `{{path}}` — {{summary}}{{^summary}}{{operationId}}{{/summary}}
 {{/operation}}
-
 {{/operations}}
+
+{{/apis}}
+{{/apiInfo}}
 
 ## Extending
 

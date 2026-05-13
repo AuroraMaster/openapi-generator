@@ -28,7 +28,7 @@ use crate::models;
 pub struct ApiResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub code: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     pub r#type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
@@ -68,11 +68,11 @@ impl Category {
 pub struct Order {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "petId", skip_serializing_if = "Option::is_none")]
     pub pet_id: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub quantity: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "shipDate", skip_serializing_if = "Option::is_none")]
     pub ship_date: Option<chrono::DateTime<chrono::Utc>>,
     /// Order Status
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -102,6 +102,7 @@ pub struct Pet {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub category: Option<models::Category>,
     pub name: String,
+    #[serde(rename = "photoUrls")]
     pub photo_urls: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<models::Tag>>,
@@ -141,6 +142,44 @@ impl Tag {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema, Validate)]
+pub struct UpdatePetWithFormRequest {
+    /// Updated name of the pet
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Updated status of the pet
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+}
+
+impl UpdatePetWithFormRequest {
+    pub fn new() -> Self {
+        Self {
+            name: None,
+            status: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema, Validate)]
+pub struct UploadFileRequest {
+    /// Additional data to pass to server
+    #[serde(rename = "additionalMetadata", skip_serializing_if = "Option::is_none")]
+    pub additional_metadata: Option<String>,
+    /// file to upload
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file: Option<Vec<u8>>,
+}
+
+impl UploadFileRequest {
+    pub fn new() -> Self {
+        Self {
+            additional_metadata: None,
+            file: None,
+        }
+    }
+}
+
 /// A User who is purchasing from the pet store
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ToSchema, Validate)]
 pub struct User {
@@ -148,9 +187,9 @@ pub struct User {
     pub id: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub username: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "firstName", skip_serializing_if = "Option::is_none")]
     pub first_name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "lastName", skip_serializing_if = "Option::is_none")]
     pub last_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
@@ -159,7 +198,7 @@ pub struct User {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub phone: Option<String>,
     /// User Status
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "userStatus", skip_serializing_if = "Option::is_none")]
     pub user_status: Option<i32>,
 }
 

@@ -39,24 +39,32 @@ pub struct {{classname}} {
     {{/hasValidation}}
     {{/enableRequestValidation}}
     {{#required}}
-    pub {{name}}: {{{dataType}}},
+    {{#vendorExtensions.x-salvo-serde-rename}}
+    #[serde(rename = "{{baseName}}")]
+    {{/vendorExtensions.x-salvo-serde-rename}}
+    pub {{{name}}}: {{{dataType}}},
     {{/required}}
     {{^required}}
+    {{#vendorExtensions.x-salvo-serde-rename}}
+    #[serde(rename = "{{baseName}}", skip_serializing_if = "Option::is_none")]
+    {{/vendorExtensions.x-salvo-serde-rename}}
+    {{^vendorExtensions.x-salvo-serde-rename}}
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub {{name}}: Option<{{{dataType}}}>,
+    {{/vendorExtensions.x-salvo-serde-rename}}
+    pub {{{name}}}: Option<{{{dataType}}}>,
     {{/required}}
 {{/vars}}
 }
 
 impl {{classname}} {
-    pub fn new({{#requiredVars}}{{name}}: {{{dataType}}}{{^-last}}, {{/-last}}{{/requiredVars}}) -> Self {
+    pub fn new({{#requiredVars}}{{{name}}}: {{{dataType}}}{{^-last}}, {{/-last}}{{/requiredVars}}) -> Self {
         Self {
 {{#vars}}
 {{#required}}
-            {{name}},
+            {{{name}}},
 {{/required}}
 {{^required}}
-            {{name}}: None,
+            {{{name}}}: None,
 {{/required}}
 {{/vars}}
         }

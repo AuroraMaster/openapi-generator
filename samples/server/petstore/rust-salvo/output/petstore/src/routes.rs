@@ -22,78 +22,138 @@ pub fn create_router() -> Router {
     // Routes for /pet
     router = router.push(
         Router::with_path("/pet")
-            .put(update_pet)
-            .post(add_pet)
+            .push(
+                Router::new()
+                    .put(update_pet)
+            )
+            .push(
+                Router::new()
+                    .post(add_pet)
+            )
     );
     // Routes for /pet/findByStatus
     router = router.push(
         Router::with_path("/pet/findByStatus")
-            .get(find_pets_by_status)
+            .push(
+                Router::new()
+                    .get(find_pets_by_status)
+            )
     );
     // Routes for /pet/findByTags
     router = router.push(
         Router::with_path("/pet/findByTags")
-            .get(find_pets_by_tags)
+            .push(
+                Router::new()
+                    .get(find_pets_by_tags)
+            )
     );
     // Routes for /pet/{petId}
     router = router.push(
         Router::with_path("/pet/{petId}")
-            .get(get_pet_by_id)
-            .post(update_pet_with_form)
-            .delete(delete_pet)
+            .push(
+                Router::new()
+                    .get(get_pet_by_id)
+            )
+            .push(
+                Router::new()
+                    .post(update_pet_with_form)
+            )
+            .push(
+                Router::new()
+                    .delete(delete_pet)
+            )
     );
     // Routes for /pet/{petId}/uploadImage
     router = router.push(
         Router::with_path("/pet/{petId}/uploadImage")
-            .post(upload_file)
+            .push(
+                Router::new()
+                    .post(upload_file)
+            )
     );
     // Routes for /store/inventory
     router = router.push(
         Router::with_path("/store/inventory")
-            .get(get_inventory)
+            .push(
+                Router::new()
+                    .get(get_inventory)
+            )
     );
     // Routes for /store/order
     router = router.push(
         Router::with_path("/store/order")
-            .post(place_order)
+            .push(
+                Router::new()
+                    .post(place_order)
+            )
     );
     // Routes for /store/order/{orderId}
     router = router.push(
         Router::with_path("/store/order/{orderId}")
-            .get(get_order_by_id)
-            .delete(delete_order)
+            .push(
+                Router::new()
+                    .get(get_order_by_id)
+            )
+            .push(
+                Router::new()
+                    .delete(delete_order)
+            )
     );
     // Routes for /user
     router = router.push(
         Router::with_path("/user")
-            .post(create_user)
+            .push(
+                Router::new()
+                    .post(create_user)
+            )
     );
     // Routes for /user/createWithArray
     router = router.push(
         Router::with_path("/user/createWithArray")
-            .post(create_users_with_array_input)
+            .push(
+                Router::new()
+                    .post(create_users_with_array_input)
+            )
     );
     // Routes for /user/createWithList
     router = router.push(
         Router::with_path("/user/createWithList")
-            .post(create_users_with_list_input)
+            .push(
+                Router::new()
+                    .post(create_users_with_list_input)
+            )
     );
     // Routes for /user/login
     router = router.push(
         Router::with_path("/user/login")
-            .get(login_user)
+            .push(
+                Router::new()
+                    .get(login_user)
+            )
     );
     // Routes for /user/logout
     router = router.push(
         Router::with_path("/user/logout")
-            .get(logout_user)
+            .push(
+                Router::new()
+                    .get(logout_user)
+            )
     );
     // Routes for /user/{username}
     router = router.push(
         Router::with_path("/user/{username}")
-            .get(get_user_by_name)
-            .put(update_user)
-            .delete(delete_user)
+            .push(
+                Router::new()
+                    .get(get_user_by_name)
+            )
+            .push(
+                Router::new()
+                    .put(update_user)
+            )
+            .push(
+                Router::new()
+                    .delete(delete_user)
+            )
     );
 
     router
